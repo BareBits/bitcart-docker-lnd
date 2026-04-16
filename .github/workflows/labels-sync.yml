@@ -1,0 +1,14 @@
+name: Sync labels
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync-labels:
+    name: sync-labels
+    uses: bitcart/bitcart-actions/.github/workflows/labels-sync.yml@master
