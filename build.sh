@@ -3,16 +3,16 @@ set -e
 
 : "${BITCARTGEN_DOCKER_IMAGE:=bitcart/docker-compose-generator}"
 if [ "$BITCARTGEN_DOCKER_IMAGE" == "bitcart/docker-compose-generator:local" ]; then
-    docker build -f generator/Dockerfile . --tag $BITCARTGEN_DOCKER_IMAGE
+    docker build -f generator/Dockerfile . --tag "$BITCARTGEN_DOCKER_IMAGE"
 else
     set +e
-    docker pull $BITCARTGEN_DOCKER_IMAGE
-    docker rmi $(docker images bitcart/docker-compose-generator --format "{{.Tag}};{{.ID}}" | grep "^<none>" | cut -f2 -d ';') >/dev/null 2>&1
+    docker pull "$BITCARTGEN_DOCKER_IMAGE"
+    docker images bitcart/docker-compose-generator --format "{{.Tag}};{{.ID}}" | grep "^<none>" | cut -f2 -d ';' | xargs -r docker rmi >/dev/null 2>&1
     set -e
 fi
 
 docker run -v "$PWD/compose:/app/compose" \
     --env-file <(env | grep BITCART_) \
     --env-file <(env | grep REVERSEPROXY_) \
-    --env NAME=$NAME \
-    --rm $BITCARTGEN_DOCKER_IMAGE $@
+    --env NAME="$NAME" \
+    --rm "$BITCARTGEN_DOCKER_IMAGE" "$@"
