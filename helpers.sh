@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 
 read_from_env_file() {
     if cat "$1" &>/dev/null; then

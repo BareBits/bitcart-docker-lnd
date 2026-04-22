@@ -1,16 +1,16 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 for org in modules/*; do
-    if [[ -d "$org" && ! -L "$org" ]]; then
+    if [ -d "$org" ] && [ ! -L "$org" ]; then
         for plugin in "$org"/*; do
-            if [[ -d "$plugin" && ! -L "$plugin" ]]; then
+            if [ -d "$plugin" ] && [ ! -L "$plugin" ]; then
                 echo "Installing $plugin"
                 # check if file  exists first
                 if [ -f "$plugin/requirements.txt" ]; then
                     uv pip install -r "$plugin/requirements.txt"
                 fi
                 # apply all patches from patches dir
-                if [[ -d "$plugin/patches" ]]; then
+                if [ -d "$plugin/patches" ]; then
                     for patch in "$plugin/patches"/*; do
                         if [ -f "$patch" ]; then
                             git apply "$patch"
