@@ -10,9 +10,23 @@ services:
       BTCLND_LND_EXTRA_ARGS: ${BTCLND_LND_EXTRA_ARGS:-}
       BTCLND_EXTERNAL_IP: ${BTCLND_EXTERNAL_IP:-}
       BTCLND_LND_BINARY: ${BTCLND_LND_BINARY:-}
+      # P2P port allocation for LND wallets. The daemon assigns one p2p
+      # port per wallet, sequentially from BTCLND_BASE_P2P_PORT. The same
+      # range (BASE..BASE+RANGE_SIZE-1) is published to the host below
+      # so inbound channels can reach each wallet's LND. Defaults give
+      # 20 wallets at 9755-9774, skipping host 9735 which the electrum
+      # btc daemon already uses. To enlarge the pool, raise both
+      # BTCLND_BASE_P2P_PORT (if needed) and BTCLND_P2P_PORT_RANGE_SIZE
+      # together — and update the firewall.
+      BTCLND_BASE_P2P_PORT: ${BTCLND_BASE_P2P_PORT:-9755}
       BITCART_HOST: ${BITCART_HOST}
     expose:
       - "5012"
+    ports:
+      # The end of the published range MUST equal BASE + SIZE - 1.
+      # deploy.sh derives BTCLND_P2P_PORT_RANGE_END from these two vars
+      # so they stay aligned; defaults below are the matching fallback.
+      - "${BTCLND_BASE_P2P_PORT:-9755}-${BTCLND_P2P_PORT_RANGE_END:-9774}:${BTCLND_BASE_P2P_PORT:-9755}-${BTCLND_P2P_PORT_RANGE_END:-9774}"
     volumes:
       - "btclnd_datadir:/data"
 
