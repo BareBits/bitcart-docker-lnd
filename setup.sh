@@ -332,6 +332,11 @@ export BITCART_ENABLE_SSH=$BITCART_ENABLE_SSH
 export BITCART_SSH_PORT=$BITCART_SSH_PORT
 export BITCARTGEN_DOCKER_IMAGE="$BITCARTGEN_DOCKER_IMAGE"
 export PIHOLE_SERVERIP="$PIHOLE_SERVERIP"
+export BITCART_SOURCE_BUILD="${BITCART_SOURCE_BUILD:-false}"
+export BITCART_REPO_URL="$BITCART_REPO_URL"
+export BITCART_REPO_BRANCH="$BITCART_REPO_BRANCH"
+export BITCART_ADMIN_REPO_URL="$BITCART_ADMIN_REPO_URL"
+export BITCART_ADMIN_REPO_BRANCH="$BITCART_ADMIN_REPO_BRANCH"
 if cat "\$BITCART_ENV_FILE" &> /dev/null; then
   while IFS= read -r line; do
     ! [[ "\$line" == "#"* ]] && [[ "\$line" == *"="* ]] && export "\$line" || true
@@ -495,6 +500,16 @@ fi
 install_tooling
 if [[ "$first_setup" = true ]]; then
     bitcart_pull
+fi
+
+# When BITCART_SOURCE_BUILD=true, rebuild bitcart/bitcart:stable,
+# bitcart/bitcart-admin:stable and bitcart/bitcart-<coin>:stable from the
+# git sources configured in BITCART_REPO_URL / BITCART_ADMIN_REPO_URL etc.
+# This must happen AFTER bitcart_pull so the locally tagged images
+# overwrite the upstream ones we just pulled (otherwise compose pull would
+# clobber them on a subsequent run).
+if [[ "${BITCART_SOURCE_BUILD:-false}" = "true" ]]; then
+    ./build-custom-images.sh
 fi
 
 if $START; then
