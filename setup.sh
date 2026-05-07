@@ -466,7 +466,12 @@ WantedBy=multi-user.target" >"/etc/systemd/system/bitcart$SCRIPTS_POSTFIX.servic
     if $SYSTEMD_RELOAD; then
         systemctl daemon-reload
         systemctl enable "bitcart$SCRIPTS_POSTFIX"
-        if $START; then
+        # In source-build mode, the systemd start is deferred until after
+        # build-custom-images.sh has tagged the local :stable images
+        # (otherwise the unit's first invocation tries to docker-compose-pull
+        # images that don't exist on Docker Hub yet — like
+        # bitcart/bitcart-btclnd:stable — and ends up stuck in 'failed').
+        if $START && [[ "${BITCART_SOURCE_BUILD:-false}" != "true" ]]; then
             echo "Bitcart starting... this can take 5 to 10 minutes..."
             systemctl start "bitcart$SCRIPTS_POSTFIX"
             echo "Bitcart started"
@@ -513,7 +518,22 @@ if [[ "${BITCART_SOURCE_BUILD:-false}" = "true" ]]; then
 fi
 
 if $START; then
-    ./start.sh
+    # In source-build mode, the systemd start was deferred above so it
+    # could find the locally-tagged images. Trigger it now via systemd
+    # (instead of calling start.sh directly) so the unit ends up in
+    # 'active' state — which is what makes it auto-start on reboot.
+    if [[ "${BITCART_SOURCE_BUILD:-false}" = "true" ]] && \
+       $STARTUP_REGISTER && $SYSTEMD_RELOAD && \
+       [[ -x "$(command -v systemctl)" ]]; then
+        echo "Bitcart starting... this can take 5 to 10 minutes..."
+        # reset-failed clears any stale 'failed' state from a prior run
+        # before source-build was wired up correctly.
+        systemctl reset-failed "bitcart$SCRIPTS_POSTFIX" 2>/dev/null || true
+        systemctl start "bitcart$SCRIPTS_POSTFIX"
+        echo "Bitcart started"
+    else
+        ./start.sh
+    fi
 fi
 
 echo "Setup done."
