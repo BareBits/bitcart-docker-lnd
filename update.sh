@@ -33,6 +33,9 @@ check_docker_compose
 install_tooling
 bitcart_update_docker_env
 bitcart_pull
+if [[ "${BITCART_SOURCE_BUILD:-false}" = "true" ]]; then
+    ./build-custom-images.sh
+fi
 bitcart_start
 
 set +e

@@ -1,0 +1,26 @@
+services:
+  btclnd:
+    restart: unless-stopped
+    image: bitcart/bitcart-btclnd:stable
+    environment:
+      BTCLND_NETWORK: ${BTCLND_NETWORK:-mainnet}
+      BTCLND_DEBUG: ${BTCLND_DEBUG:-false}
+      BTCLND_TOR: ${BTCLND_TOR:-auto}
+      BTCLND_NEUTRINO_PEERS: ${BTCLND_NEUTRINO_PEERS:-}
+      BTCLND_LND_EXTRA_ARGS: ${BTCLND_LND_EXTRA_ARGS:-}
+      BTCLND_EXTERNAL_IP: ${BTCLND_EXTERNAL_IP:-}
+      BTCLND_LND_BINARY: ${BTCLND_LND_BINARY:-}
+      BITCART_HOST: ${BITCART_HOST}
+    expose:
+      - "5012"
+    volumes:
+      - "btclnd_datadir:/data"
+
+  backend:
+    depends_on:
+      - btclnd
+    links:
+      - btclnd
+
+volumes:
+  btclnd_datadir:
