@@ -58,6 +58,29 @@ rsync -a --delete --exclude=.git --exclude=.venv --exclude=__pycache__ \
     "$SRC_DIR/bitcart/" "$STAGING_DIR/bitcart/"
 cp -r "$ROOT_DIR/compose/scripts" "$STAGING_DIR/scripts"
 
+# bitcart's Settings class (api/settings.py) loads conf/.env via
+# pydantic-settings SettingsConfigDict(env_file="conf/.env"). The file is
+# gitignored in the bitcart repo because each deployment supplies its own
+# docker-network hostnames. Without it the backend falls back to
+# 127.0.0.1 for redis, the coin daemons, and the database — matching
+# what upstream bitcart-docker generates in dev-setup.sh, plus
+# BTCLND_HOST=btclnd for our LND daemon.
+cat >"$STAGING_DIR/bitcart/conf/.env" <<'EOF'
+DB_HOST=database
+REDIS_HOST=redis
+BTC_HOST=bitcoin
+BTCLND_HOST=btclnd
+LTC_HOST=litecoin
+BCH_HOST=bitcoincash
+XRG_HOST=ergon
+ETH_HOST=ethereum
+BNB_HOST=binancecoin
+MATIC_HOST=polygon
+TRX_HOST=tron
+GRS_HOST=groestlcoin
+XMR_HOST=monero
+EOF
+
 echo "==> Building bitcart/bitcart:stable (backend + worker image)"
 docker build \
     -t bitcart/bitcart:stable \
