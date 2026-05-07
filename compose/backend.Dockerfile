@@ -17,7 +17,7 @@ COPY bitcart /app
 COPY scripts/docker-entrypoint.sh /usr/local/bin/
 COPY --from=go-builder /go/bin/bitcart-cli /usr/local/bin/
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends iproute2 openssh-client build-essential python3-dev libffi-dev ca-certificates wget libjemalloc2 && \
+RUN apt-get update && apt-get install -y --no-install-recommends iproute2 openssh-client build-essential python3-dev libffi-dev ca-certificates wget git libjemalloc2 && \
     dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" && \
     wget -qO /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch" && \
     chmod +x /usr/local/bin/gosu && \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends iproute2 openss
     useradd --uid 1000 --gid electrum --shell /bin/bash --create-home electrum && \
     uv sync --frozen --no-dev --group web --group production --group otel && \
     uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement - && \
-    apt-get purge -y build-essential python3-dev libffi-dev wget && \
+    apt-get purge -y build-essential python3-dev libffi-dev wget git && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 ENV OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=asyncpg
