@@ -1,4 +1,4 @@
-FROM python:3.12-alpine AS base
+FROM python:3.12-slim-trixie AS base
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV BTCLND_USER=electrum
@@ -15,20 +15,26 @@ FROM base AS compile-image
 
 COPY bitcart $BTCLND_HOME/site
 
-RUN apk add git python3-dev build-base libffi-dev && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git build-essential python3-dev libffi-dev ca-certificates && \
     cd $BTCLND_HOME/site && \
     uv sync --frozen --no-dev --group btclnd --group otel && \
-    uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
+    uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement - && \
+    rm -rf /var/lib/apt/lists/*
 
 FROM base AS build-image
 
-RUN adduser -D $BTCLND_USER && \
+# Runtime deps:
+# - curl: LNDBinaryManager downloads the lnd release tarball via curl
+# - tor: enables hybrid-mode operation (daemon auto-detects via shutil.which)
+# - ca-certificates: HTTPS to github releases and any clearnet peers
+# - libjemalloc2: matches the backend image's memory allocator setup
+RUN useradd --uid 1000 --shell /bin/bash --create-home $BTCLND_USER && \
     mkdir -p $BTCLND_DATA_PATH && \
-    chown ${BTCLND_USER} $BTCLND_DATA_PATH && \
-    mkdir -p $BTCLND_HOME/site && \
-    chown ${BTCLND_USER} $BTCLND_HOME/site && \
-    apk add --no-cache ca-certificates tor && \
-    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main jemalloc
+    chown $BTCLND_USER $BTCLND_DATA_PATH && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends curl tor ca-certificates libjemalloc2 && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=compile-image --chown=electrum $BTCLND_HOME/site/.venv $BTCLND_HOME/.venv
 COPY --from=compile-image --chown=electrum $BTCLND_HOME/site $BTCLND_HOME/site
