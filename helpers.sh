@@ -92,7 +92,17 @@ bitcart_reset_plugins() {
 }
 
 bitcart_pull() {
-    docker compose -f compose/generated.yml pull
+    # Source-built images (bitcart/bitcart, bitcart/bitcart-<coin>,
+    # bitcart/bitcart-admin) don't exist on Docker Hub when running with
+    # custom forks — they get created locally by build-custom-images.sh
+    # right after this pull. --ignore-pull-failures lets compose finish
+    # pulling postgres, redis, nginx, store, etc. instead of aborting on
+    # the first missing source-built image.
+    if [[ "${BITCART_SOURCE_BUILD:-false}" = "true" ]]; then
+        docker compose -f compose/generated.yml pull --ignore-pull-failures
+    else
+        docker compose -f compose/generated.yml pull
+    fi
     bitcart_reset_plugins
 }
 
