@@ -2,6 +2,8 @@ services:
   btclnd:
     restart: unless-stopped
     image: bitcart/bitcart-btclnd:stable
+    # Built locally by build-custom-images.sh; no upstream image exists for this daemon at all
+    pull_policy: never
     environment:
       BTCLND_NETWORK: ${BTCLND_NETWORK:-mainnet}
       BTCLND_DEBUG: ${BTCLND_DEBUG:-false}

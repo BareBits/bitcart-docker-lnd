@@ -2,6 +2,8 @@ services:
   bitcoin:
     restart: unless-stopped
     image: bitcart/bitcart-btc:stable
+    # Built locally by build-custom-images.sh — don't try to pull from Docker Hub
+    pull_policy: never
     environment:
       BTC_NETWORK: ${BTC_NETWORK:-mainnet}
       BTC_LIGHTNING: ${BTC_LIGHTNING:-false}

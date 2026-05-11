@@ -2,6 +2,8 @@ services:
   backend:
     restart: unless-stopped
     image: bitcart/bitcart:stable
+    # Built locally by build-custom-images.sh — don't try to pull from Docker Hub
+    pull_policy: never
     command: just prod-api-up
     environment:
       BITCART_ENV: production
