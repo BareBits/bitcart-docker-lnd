@@ -2,6 +2,8 @@ services:
   admin:
     restart: unless-stopped
     image: bitcart/bitcart-admin:stable
+    # Built locally by build-custom-images.sh — don't try to pull from Docker Hub
+    pull_policy: never
     expose:
       - "4000"
     command: yarn start
