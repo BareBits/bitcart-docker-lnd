@@ -21,6 +21,16 @@ services:
       # BTCLND_BASE_P2P_PORT (if needed) and BTCLND_P2P_PORT_RANGE_SIZE
       # together — and update the firewall.
       BTCLND_BASE_P2P_PORT: ${BTCLND_BASE_P2P_PORT:-9755}
+      # gRPC port allocation for LND wallets. One port per wallet, allocated
+      # sequentially from BTCLND_BASE_GRPC_PORT. The same range is published
+      # to 127.0.0.1 below so host-side tooling (e.g. liquidityhelper) can
+      # speak gRPC directly to each wallet's LND. Defaults give 20 wallets
+      # at 10009-10028. The end of the published range MUST equal
+      # BASE + SIZE - 1; defaults below are the matching fallback. Set
+      # BTCLND_GRPC_PUBLIC_HOST to "btclnd" instead if your callers run as
+      # sidecars on the docker network and you'd rather not publish at all.
+      BTCLND_BASE_GRPC_PORT: ${BTCLND_BASE_GRPC_PORT:-10009}
+      BTCLND_GRPC_PUBLIC_HOST: ${BTCLND_GRPC_PUBLIC_HOST:-127.0.0.1}
       BITCART_HOST: ${BITCART_HOST}
     expose:
       - "5012"
@@ -29,6 +39,9 @@ services:
       # deploy.sh derives BTCLND_P2P_PORT_RANGE_END from these two vars
       # so they stay aligned; defaults below are the matching fallback.
       - "${BTCLND_BASE_P2P_PORT:-9755}-${BTCLND_P2P_PORT_RANGE_END:-9774}:${BTCLND_BASE_P2P_PORT:-9755}-${BTCLND_P2P_PORT_RANGE_END:-9774}"
+      # gRPC range published to 127.0.0.1 only — macaroon auth is still
+      # required, but binding to localhost keeps the surface minimal.
+      - "127.0.0.1:${BTCLND_BASE_GRPC_PORT:-10009}-${BTCLND_GRPC_PORT_RANGE_END:-10028}:${BTCLND_BASE_GRPC_PORT:-10009}-${BTCLND_GRPC_PORT_RANGE_END:-10028}"
     volumes:
       - "btclnd_datadir:/data"
 
