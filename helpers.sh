@@ -317,6 +317,24 @@ save_deploy_config() {
     else
         BACKUP_ENCRYPTION_KEY="$existing_key"
     fi
+    # Resolve the source-build pins to persist BEFORE the cat below
+    # truncates the config (same ordering the BACKUP_ENCRYPTION_KEY read
+    # above relies on). For each var, prefer the current environment
+    # value; if empty, reuse whatever was saved on the previous run.
+    # Without this, build-custom-images.sh falls back to its upstream
+    # defaults (github.com/bitcart/bitcart@master) on every cron update,
+    # silently replacing a custom fork with upstream and wiping local
+    # source customizations.
+    source_build_pins=""
+    for _v in BITCART_SOURCE_BUILD \
+              BITCART_REPO_URL BITCART_REPO_BRANCH \
+              BITCART_ADMIN_REPO_URL BITCART_ADMIN_REPO_BRANCH; do
+        _val="${!_v:-}"
+        if [ -z "$_val" ] && [ -f "$BITCART_DEPLOYMENT_CONFIG" ]; then
+            _val=$(grep "^${_v}=" "$BITCART_DEPLOYMENT_CONFIG" 2>/dev/null | cut -d'=' -f2-)
+        fi
+        source_build_pins+="${_v}=${_val}"$'\n'
+    done
     cat >"${BITCART_DEPLOYMENT_CONFIG}" <<EOF
 #!/bin/bash
 NAME=$NAME
@@ -327,6 +345,7 @@ BACKEND_PLUGINS_HASH=$(get_plugins_hash backend)
 DOCKER_PLUGINS_HASH=$(get_plugins_hash docker)
 BACKUP_ENCRYPTION_KEY=$BACKUP_ENCRYPTION_KEY
 EOF
+    printf '%s' "$source_build_pins" >>"${BITCART_DEPLOYMENT_CONFIG}"
     chmod +x "${BITCART_DEPLOYMENT_CONFIG}"
     read_from_env_file "$BITCART_DEPLOYMENT_CONFIG"
 }
