@@ -362,6 +362,15 @@ make_backup_image() {
     fi
 }
 
+# True when the live :stable image already carries a baked plugin layer (the
+# backend/admin/store plugin Dockerfiles stamp org.bitcart.plugins=true). Used so
+# install_plugins re-bakes whenever the image lost its plugin layer — e.g. after a
+# source build (BITCART_SOURCE_BUILD) or an upstream pull replaced :stable with a
+# fresh, unlabeled image — even though the plugin *content* hash is unchanged.
+plugins_baked() {
+    [ "$(docker inspect --format '{{ index .Config.Labels "org.bitcart.plugins"}}' "$1:stable" 2>/dev/null)" = true ]
+}
+
 install_plugins() {
     COMPONENTS=$(./build.sh --components-only | tail -1)
     COIN_COMPONENTS=$(./build.sh --cryptos-only | tail -1)
@@ -384,13 +393,13 @@ install_plugins() {
         ./build.sh || touch "$failed_file"
         docker compose -f compose/generated.yml config || touch "$failed_file"
     fi
-    if [[ " ${COMPONENTS[*]} " == *" backend "* ]] && [[ "$BACKEND_PLUGINS_HASH" != "$(get_plugins_hash backend)" ]]; then
+    if [[ " ${COMPONENTS[*]} " == *" backend "* ]] && { [[ "$BACKEND_PLUGINS_HASH" != "$(get_plugins_hash backend)" ]] || ! plugins_baked bitcart/bitcart; }; then
         docker build -t bitcart/bitcart:stable -f compose/backend-plugins.Dockerfile compose || error=true
     fi
-    if [[ "$error" = false ]] && [[ " ${COMPONENTS[*]} " == *" admin "* ]] && [[ "$ADMIN_PLUGINS_HASH" != "$(get_plugins_hash admin)" ]]; then
+    if [[ "$error" = false ]] && [[ " ${COMPONENTS[*]} " == *" admin "* ]] && { [[ "$ADMIN_PLUGINS_HASH" != "$(get_plugins_hash admin)" ]] || ! plugins_baked bitcart/bitcart-admin; }; then
         docker build -t bitcart/bitcart-admin:stable -f compose/admin-plugins.Dockerfile compose || error=true
     fi
-    if [[ "$error" = false ]] && [[ " ${COMPONENTS[*]} " == *" store "* ]] && [[ "$STORE_PLUGINS_HASH" != "$(get_plugins_hash store)" ]]; then
+    if [[ "$error" = false ]] && [[ " ${COMPONENTS[*]} " == *" store "* ]] && { [[ "$STORE_PLUGINS_HASH" != "$(get_plugins_hash store)" ]] || ! plugins_baked bitcart/bitcart-store; }; then
         docker build -t bitcart/bitcart-store:stable -f compose/store-plugins.Dockerfile compose || error=true
     fi
     if [[ "$error" = true ]]; then
